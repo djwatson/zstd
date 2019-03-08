@@ -749,22 +749,30 @@ size_t ZSTD_execSequence(BYTE* op,
     /* Requirement: op <= oend_w && sequence.matchLength >= MINMATCH */
 
     /* match within prefix */
-    if (sequence.offset < 8) {
-        /* close range match, overlap */
-        static const U32 dec32table[] = { 0, 1, 2, 1, 4, 4, 4, 4 };   /* added */
-        static const int dec64table[] = { 8, 8, 8, 7, 8, 9,10,11 };   /* subtracted */
-        int const sub2 = dec64table[sequence.offset];
-        op[0] = match[0];
-        op[1] = match[1];
-        op[2] = match[2];
-        op[3] = match[3];
-        match += dec32table[sequence.offset];
-        ZSTD_copy4(op+4, match);
-        match -= sub2;
-        op += 8; match += 8;
-        ZSTD_wildcopy(op, match, (ptrdiff_t)sequence.matchLength-8);   /* works even if matchLength < 8 */
-    } else {
+    if (sequence.offset < 16) {
+        if (sequence.offset < 8) {
+            /* close range match, overlap */
+            static const U32 dec32table[] = { 0, 1, 2, 1, 4, 4, 4, 4 };   /* added */
+            static const int dec64table[] = { 8, 8, 8, 7, 8, 9,10,11 };   /* subtracted */
+            int const sub2 = dec64table[sequence.offset];
+            op[0] = match[0];
+            op[1] = match[1];
+            op[2] = match[2];
+            op[3] = match[3];
+            match += dec32table[sequence.offset];
+            ZSTD_copy4(op+4, match);
+            match -= sub2;
+            op += 8; match += 8;
+            ZSTD_wildcopy(op, match, (ptrdiff_t)sequence.matchLength-8);   /* works even if matchLength < 8 */
+        } else {
         ZSTD_wildcopy(op, match, (ptrdiff_t)sequence.matchLength);   /* works even if matchLength < 8 */
+        }
+    } else {
+      i = 0;
+      do {
+        memcpy(op + i, match + i, 16);
+        i += 16;
+      } while (i < sequence.matchLength);
     }
 
     return sequenceLength;
