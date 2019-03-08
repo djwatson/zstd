@@ -761,21 +761,12 @@ size_t ZSTD_execSequence(BYTE* op,
         match += dec32table[sequence.offset];
         ZSTD_copy4(op+4, match);
         match -= sub2;
-    } else {
-        ZSTD_copy8(op, match);
-    }
-    op += 8; match += 8;
-
-    if (oMatchEnd > oend-(16-MINMATCH)) {
-        if (op < oend_w) {
-            ZSTD_wildcopy(op, match, oend_w - op);
-            match += oend_w - op;
-            op = oend_w;
-        }
-        while (op < oMatchEnd) *op++ = *match++;
-    } else {
+        op += 8; match += 8;
         ZSTD_wildcopy(op, match, (ptrdiff_t)sequence.matchLength-8);   /* works even if matchLength < 8 */
+    } else {
+        ZSTD_wildcopy(op, match, (ptrdiff_t)sequence.matchLength);   /* works even if matchLength < 8 */
     }
+
     return sequenceLength;
 }
 
