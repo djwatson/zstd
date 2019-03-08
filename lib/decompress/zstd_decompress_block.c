@@ -710,6 +710,7 @@ size_t ZSTD_execSequence(BYTE* op,
     BYTE* const oend_w = oend - 32;
     const BYTE* const iLitEnd = *litPtr + sequence.litLength;
     const BYTE* match = oLitEnd - sequence.offset;
+    U32 i = 0;
 
     /* check */
     if (oMatchEnd>oend_w) return ZSTD_execSequenceLast31(op, oend, sequence, litPtr, litLimit, prefixStart, virtualStart, dictEnd);
@@ -717,9 +718,11 @@ size_t ZSTD_execSequence(BYTE* op,
     if (oLitEnd>oend_w) return ZSTD_execSequenceLast31(op, oend, sequence, litPtr, litLimit, prefixStart, virtualStart, dictEnd);
 
     /* copy Literals */
-    ZSTD_copy8(op, *litPtr);
-    if (sequence.litLength > 8)
-        ZSTD_wildcopy(op+8, (*litPtr)+8, sequence.litLength - 8);   /* note : since oLitEnd <= oend-WILDCOPY_OVERLENGTH, no risk of overwrite beyond oend */
+    do {
+      memcpy(op+i, *litPtr+i, 16);
+      memcpy(op+16+i, *litPtr+16+i, 16);
+      i+= 32;
+    } while (i < sequence.litLength);
     op = oLitEnd;
     *litPtr = iLitEnd;   /* update for next sequence */
 
@@ -739,7 +742,6 @@ size_t ZSTD_execSequence(BYTE* op,
             sequence.matchLength -= length1;
             match = prefixStart;
             if (op > oend_w || sequence.matchLength < MINMATCH) {
-              U32 i;
               for (i = 0; i < sequence.matchLength; ++i) op[i] = match[i];
               return sequenceLength;
             }
